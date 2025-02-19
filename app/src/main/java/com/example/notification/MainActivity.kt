@@ -15,6 +15,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
+import androidx.core.app.TaskStackBuilder
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.example.notification.databinding.ActivityMainBinding
@@ -40,28 +41,41 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         val title = getString(R.string.notification_title)
-        val string = getString(R.string.notification_message)
+        val mesagge = getString(R.string.notification_message)
 
-
-        binding.btnSendNotification.setOnClickListener {
-            sendNotification(title,string)
-        }
         if(Build.VERSION.SDK_INT >= 33) {
             requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+
+        binding.btnSendNotification.setOnClickListener {
+            sendNotification(title,mesagge)
+        }
+
+
+        binding.btnOpenDetail.setOnClickListener {
+            val detailIntent = Intent(this@MainActivity, DetailActivity::class.java)
+            detailIntent.putExtra(DetailActivity.EXTRA_TITLE, title)
+            detailIntent.putExtra(DetailActivity.EXTRA_MESSAGE, mesagge)
+            startActivity(detailIntent)
         }
 
     }
 
     private fun sendNotification(title:String, message:String) {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://dicoding.com"))
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            intent,
-            // biar memastikan intent yang dikirimkan tidak dapat Diubah
-            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
-        )
 
+        val notifDetailIntent = Intent(this, DetailActivity::class.java)
+        notifDetailIntent.putExtra(DetailActivity.EXTRA_TITLE, title)
+        notifDetailIntent.putExtra(DetailActivity.EXTRA_MESSAGE, message)
+
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://dicoding.com"))
+        val pendingIntent =TaskStackBuilder.create(this).run {
+            addNextIntentWithParentStack(notifDetailIntent)
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                getPendingIntent(NOTIFICATION_ID, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            } else {
+                getPendingIntent(NOTIFICATION_ID, PendingIntent.FLAG_UPDATE_CURRENT)
+            }
+        }
 
         // mengirim notifikasi sesuai dengan id yang kita berikan
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
